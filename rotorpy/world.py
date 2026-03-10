@@ -135,11 +135,12 @@ class World(object):
         collisions = np.logical_or(collisions_points, collisions_blocks)
         return pts[collisions]
 
-    def draw_empty_world(self, ax):
+    def draw_empty_world(self, ax, draw_bounds=True):
         """
         Draw just the world without any obstacles yet. The boundary is represented with a black line.
         Parameters:
             ax, Axes3D object
+            draw_bounds, if True draw the wireframe boundary box, default True
         """
         (xmin, xmax, ymin, ymax, zmin, zmax) = self.world['bounds']['extents']
 
@@ -154,17 +155,20 @@ class World(object):
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.set_zlabel('z')
-        c = Cuboid(ax, xmax - xmin, ymax - ymin, zmax - zmin, alpha=0.01, linewidth=1, edgecolors='k')
-        c.transform(position=(xmin, ymin, zmin))
-        return list(c.artists)
+        if draw_bounds:
+            c = Cuboid(ax, xmax - xmin, ymax - ymin, zmax - zmin, alpha=0.01, linewidth=1, edgecolors='k')
+            c.transform(position=(xmin, ymin, zmin))
+            return list(c.artists)
+        return []
 
-    def draw(self, ax, alpha=None, edgecolor=None, facecolor=None):
+    def draw(self, ax, alpha=None, edgecolor=None, facecolor=None, draw_bounds=True):
         """
         Draw world onto existing Axes3D axes and return artists corresponding to the
         blocks.
 
         Parameters:
             ax, Axes3D object
+            draw_bounds, if True draw the wireframe boundary box, default True
 
         Returns:
             block_artists, list of Artists associated with blocks
@@ -172,7 +176,7 @@ class World(object):
         Example use:
             my_world.draw(ax)
         """
-        bounds_artists = self.draw_empty_world(ax)
+        bounds_artists = self.draw_empty_world(ax, draw_bounds=draw_bounds)
 
         if alpha is None:
             alpha = 0.7

@@ -29,7 +29,7 @@ def _decimate_index(time, sample_time):
     sample_index = np.round(np.interp(sample_time, time, index)).astype(int)
     return sample_index
 
-def animate(time, position, rotation, wind, animate_wind, world, filename=None, blit=False, show_axes=True, close_on_finish=False):
+def animate(time, position, rotation, wind, animate_wind, world, filename=None, blit=False, show_axes=True, close_on_finish=False, show_trace=True, zoom_margin=0.5, show_wirebox=False):
     """
     Animate a completed simulation result based on the time, position, and
     rotation history. The animation may be viewed live or saved to a .mp4 video
@@ -55,6 +55,9 @@ def animate(time, position, rotation, wind, animate_wind, world, filename=None, 
         blit, if True use blit for faster animation, default is False
         show_axes, if True plot axes, default is True
         close_on_finish, if True close figure at end of live animation or save, default is False
+        show_trace, if True draw trajectory trace behind the drone, default is True
+        zoom_margin, padding (meters) around trajectory bounds for axis limits; smaller = more zoomed in. Default 0.5.
+        show_wirebox, if True draw the world boundary wireframe, default False
     """
 
     # Check if there is only one drone.
@@ -102,22 +105,47 @@ def animate(time, position, rotation, wind, animate_wind, world, filename=None, 
 
     quads = [Quadrotor(ax, wind=animate_wind, wind_scale_factor=1) for _ in range(M)]
 
-    world_artists = world.draw(ax)
+    world_artists = world.draw(ax, draw_bounds=show_wirebox)
+
+    # Zoom to trajectory bounds with margin (override world's default limits)
+    xmin, xmax = position[:, :, 0].min() - zoom_margin, position[:, :, 0].max() + zoom_margin
+    ymin, ymax = position[:, :, 1].min() - zoom_margin, position[:, :, 1].max() + zoom_margin
+    zmin, zmax = position[:, :, 2].min() - zoom_margin, position[:, :, 2].max() + zoom_margin
+    width = max(xmax - xmin, ymax - ymin, zmax - zmin)
+    cx, cy, cz = (xmin + xmax) / 2, (ymin + ymax) / 2, (zmin + zmax) / 2
+    half = width / 2
+    ax.set_xlim(cx - half, cx + half)
+    ax.set_ylim(cy - half, cy + half)
+    ax.set_zlim(cz - half, cz + half)
+
+    # Trajectory trace lines (one per drone)
+    trace_lines = []
+    if show_trace:
+        for i in range(M):
+            line, = ax.plot(position[0:1, i, 0], position[0:1, i, 1], position[0:1, i, 2],
+                            color=f'C{i % 10}', alpha=0.7, linewidth=1.5)
+            trace_lines.append(line)
 
     title_artist = ax.set_title('t = {}'.format(time[0]))
 
     def init():
         ax.draw(fig.canvas.get_renderer())
-        # return world_artists + list(cquad.artists) + [title_artist]
-        return world_artists + [title_artist] + [q.artists for q in quads]
+        artists = world_artists + [title_artist] + [q.artists for q in quads]
+        if trace_lines:
+            artists = artists + trace_lines
+        return artists
 
     def update(frame):
         title_artist.set_text('t = {:.2f}'.format(time[frame]))
         for i, quad in enumerate(quads):
             quad.transform(position=position[frame,i,:], rotation=rotation[frame,i,:,:], wind=wind[frame,i,:])
-        # [a.do_3d_projection(fig.canvas.get_renderer()) for a in quad.artists]   # No longer necessary in newer matplotlib?
-        # return world_artists + list(quad.artists) + [title_artist]
-        return world_artists + [title_artist] + [q.artists for q in quads]
+        for i, line in enumerate(trace_lines):
+            line.set_data(position[:frame+1, i, 0], position[:frame+1, i, 1])
+            line.set_3d_properties(position[:frame+1, i, 2])
+        artists = world_artists + [title_artist] + [q.artists for q in quads]
+        if trace_lines:
+            artists = artists + trace_lines
+        return artists
 
     ani = ClosingFuncAnimation(fig=fig,
                         func=update,
@@ -136,7 +164,7 @@ def animate(time, position, rotation, wind, animate_wind, world, filename=None, 
         ani.save(path,
                  writer='ffmpeg',
                  fps=render_fps,
-                 dpi=100)
+                 dpi=400)
         if close_on_finish:
             plt.close(fig)
             ani = None

@@ -62,7 +62,7 @@ sim_instance = Environment(vehicle=Multirotor(quad_params),           # vehicle 
                            controller=RaptorFoundationPolicy(quad_params),     # use RAPTOR policy
                            trajectory=ThreeDCircularTraj(center=np.array([0,0,1]), radius=np.array([1,1,0])),         # trajectory object, must be specified.
                            wind_profile=None,               # OPTIONAL: wind profile object, if none is supplied it will choose no wind. 
-                           sim_rate     = 100,                        # OPTIONAL: The update frequency of the simulator in Hz. Default is 100 Hz.
+                           sim_rate     = 100,                       # OPTIONAL: The update frequency of the simulator in Hz. Default is 100 Hz.
                            imu          = None,                       # OPTIONAL: imu sensor object, if none is supplied it will choose a default IMU sensor.
                            mocap        = None,                       # OPTIONAL: mocap sensor object, if none is supplied it will choose a default mocap.  
                            estimator    = None,                       # OPTIONAL: estimator object
@@ -102,7 +102,7 @@ results = sim_instance.run(t_final      = 20,       # The maximum duration of th
                            animate_bool    = True,     # Boolean: determines if the animation of vehicle state will play. 
                            animate_wind    = False,    # Boolean: determines if the animation will include a scaled wind vector to indicate the local wind acting on the UAV. 
                            verbose         = True,     # Boolean: will print statistics regarding the simulation. 
-                           fname   = None # Filename is specified if you want to save the animation. The save location is rotorpy/data_out/. 
+                           fname   = "raptor_video"  # Filename is specified if you want to save the animation. The save location is rotorpy/data_out/. 
                     )
 
 # There are booleans for if you want to plot all/some of the results, animate the multirotor, and 
